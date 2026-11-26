@@ -3,6 +3,19 @@ import { LimitError, ParseError } from "../errors.js";
 export const DEFAULT_MAX_INPUT_BYTES = 100 * 1024 * 1024;
 const MAX_LINE_BYTES = 16 * 1024 * 1024;
 
+/**
+ * Remove any quoted source snippet from a JSON.parse error message, so that
+ * error output never echoes dataset contents.
+ */
+export function sanitizeJsonError(message: string): string {
+  return message
+    .replace(/^JSON\.parse: /, "")
+    .replace(/,?\s*".*"\s*is not valid JSON/s, "")
+    .replace(/token '.{1,4}'/g, "token")
+    .replace(/Unexpected token .{1,4} in JSON/g, "Unexpected token in JSON")
+    .slice(0, 200);
+}
+
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;
 }
@@ -17,7 +30,7 @@ export function parseJson(text: string, maxBytes = DEFAULT_MAX_INPUT_BYTES): unk
     const m = /position (\d+)/.exec(msg);
     let line: number | undefined;
     if (m) line = stripBom(text).slice(0, Number(m[1])).split("\n").length;
-    throw new ParseError(`Invalid JSON${line ? ` near line ${line}` : ""}: ${msg.replace(/^JSON\.parse: /, "")}`, line);
+    throw new ParseError(`Invalid JSON${line ? ` near line ${line}` : ""}: ${sanitizeJsonError(msg)}`, line);
   }
 }
 
@@ -41,7 +54,7 @@ export function parseJsonlLine(line: string, lineNumber: number): unknown {
   try {
     return JSON.parse(lineNumber === 1 ? stripBom(t) : t);
   } catch (e) {
-    throw new ParseError(`Invalid JSON on line ${lineNumber}: ${(e as Error).message}`, lineNumber);
+    throw new ParseError(`Invalid JSON on line ${lineNumber}: ${sanitizeJsonError((e as Error).message)}`, lineNumber);
   }
 }
 
@@ -143,7 +156,7 @@ export class JsonArrayStreamParser {
     try {
       out.push(JSON.parse(t));
     } catch (e) {
-      throw new ParseError(`Invalid JSON array element: ${(e as Error).message}`);
+      throw new ParseError(`Invalid JSON array element: ${sanitizeJsonError((e as Error).message)}`);
     }
   }
 }

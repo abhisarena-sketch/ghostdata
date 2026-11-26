@@ -315,7 +315,11 @@ export function inferFromStats(stats: CollectionStats, options: InferOptions = {
       if (f !== undefined) schema[k] = f;
     }
   }
-  if (stats.records < 5 && stats.records > 0) warnings.push(`Only ${stats.records} record(s) analysed. Use more records for more reliable inference.`);
+  if (stats.records < 5 && stats.records > 0) {
+    warnings.push(`Only ${stats.records} record(s) analysed. Use more records for more reliable inference.`);
+    // The collection-level warning covers every field; avoid repeating it per field.
+    for (const f of fields) f.warnings = f.warnings.filter((w) => !w.startsWith("Only "));
+  }
   if (options.overrides) {
     const missing = applyOverrides(schema, options.overrides, fields);
     for (const m of missing) warnings.push(`Override path "${m}" did not match the inferred schema.`);
