@@ -1,0 +1,25 @@
+{
+  "name": "@workfonic/dataghost-generators",
+  "version": "0.1.0",
+  "description": "Seeded, privacy-safe synthetic field generators for DataGhost.",
+  "license": "MIT",
+  "author": "Workfonic Labs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=20" },
+  "repository": { "type": "git", "url": "git+https://github.com/abhisarena-sketch/ghostdata.git", "directory": "packages/generators" },
+  "keywords": ["synthetic-data", "test-data", "fixtures", "privacy", "data-masking", "faker", "dataghost"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": { "zod": "4.6.7" }
+}
