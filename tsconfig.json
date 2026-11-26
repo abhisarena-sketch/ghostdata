@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/generators" },
+    { "path": "packages/relationships" },
+    { "path": "packages/privacy" },
+    { "path": "packages/core" },
+    { "path": "packages/cli" }
+  ]
+}

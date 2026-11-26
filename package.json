@@ -1,0 +1,44 @@
+{
+  "name": "dataghost-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "DataGhost by Workfonic Labs: realistic test data, zero real identities.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/generators",
+    "packages/relationships",
+    "packages/privacy",
+    "packages/core",
+    "packages/cli",
+    "apps/playground"
+  ],
+  "scripts": {
+    "build": "npm run build:packages && npm run build:playground",
+    "build:packages": "tsc -b tsconfig.json",
+    "build:playground": "npm run build -w @workfonic/dataghost-playground",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.test.json --noEmit && npm run typecheck -w @workfonic/dataghost-playground",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "npm run build:packages && node tests/benchmarks/run.mjs",
+    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo apps/playground/.next apps/playground/out",
+    "dev": "npm run build:packages && npm run dev -w @workfonic/dataghost-playground"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.7",
+    "eslint": "9.39.5",
+    "globals": "17.14.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.74.0",
+    "vite": "7.3.8",
+    "vitest": "4.1.12"
+  },
+  "overrides": {
+    "vite": "7.3.8"
+  }
+}
