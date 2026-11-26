@@ -119,6 +119,12 @@ const NAME_RULES: NameRule[] = [
   { category: "freeText", score: 0.55, exact: ["notes", "note", "comment", "comments", "description", "bio", "about", "remarks", "message", "body", "feedback", "summary"] },
 ];
 
+function singularToken(t: string): string {
+  if (t.endsWith("ies")) return t.slice(0, -3) + "y";
+  if (t.endsWith("s") && !t.endsWith("ss")) return t.slice(0, -1);
+  return t;
+}
+
 function nameDetections(path: string): Detection[] {
   const segments = path.replace(/\[\]/g, "").split(".");
   const leaf = segments[segments.length - 1] ?? "";
@@ -130,7 +136,7 @@ function nameDetections(path: string): Detection[] {
     if (rule.unless?.some((u) => tokens.includes(u))) continue;
     const hit = rule.exact ? rule.exact.includes(joined) : rule.all ? rule.all.every((t) => tokens.includes(t)) : false;
     if (!hit) continue;
-    if (rule.category === "personName" && joined === "name" && tokenize(parent).some((t) => NOT_PERSON.includes(t.replace(/s$/, "")))) continue;
+    if (rule.category === "personName" && joined === "name" && tokenize(parent).some((t) => NOT_PERSON.includes(singularToken(t)))) continue;
     if (rule.category === "personName" && tokens.some((t) => NOT_PERSON.includes(t)) && joined !== "username") continue;
     out.push({ category: rule.category, confidence: rule.score, reasons: [`field name "${leaf}"`] });
   }
@@ -139,7 +145,8 @@ function nameDetections(path: string): Detection[] {
   const parentTokens = tokenize(parent);
   const leafGeneric = ["line1", "line2", "street", "city", "state", "zip", "postcode", "postalcode", "region", "province", "district"].includes(joined);
   if (parentTokens.includes("address") && leafGeneric) {
-    out.push({ category: joined === "city" || joined === "state" || joined === "region" ? "quasiIdentifier" : "address", confidence: 0.8, reasons: [`inside "${parent}"`] });
+    const quasi = ["city", "state", "region", "province", "district", "zip", "postcode", "postalcode"].includes(joined);
+    out.push({ category: quasi ? "quasiIdentifier" : "address", confidence: 0.8, reasons: [`inside "${parent}"`] });
   }
   if (parentTokens.includes("name") && ["first", "last", "middle", "given", "family", "full"].includes(joined)) {
     out.push({ category: "personName", confidence: 0.85, reasons: [`"${leaf}" inside "${parent}"`] });
@@ -268,7 +275,7 @@ function identifierDetection(path: string, samples: readonly unknown[]): Detecti
   if (!values.length) return undefined;
   const idLike = values.filter((v) => (typeof v === "number" && Number.isInteger(v)) || (typeof v === "string" && (RE.idLike.test(v) || RE.uuid.test(v) || RE.objectId.test(v)))).length;
   if (idLike / values.length < 0.8) return undefined;
-  return { category: "identifier", confidence: 0.6, reasons: [`identifier-like field "${leaf}" (may link records to real people or entities)`] };
+  return { category: "identifier", confidence: 0.75, reasons: [`identifier-like field "${leaf}" (may link records to real people or entities)`] };
 }
 
 /**
@@ -298,7 +305,7 @@ export function classifyField(evidence: FieldEvidence): PrivacyClassification {
   // Value-only name matches on fields that clearly name something else ("companyName", "departments.name").
   const segs = evidence.path.replace(/\[\]/g, "").split(".");
   const leafTokens = tokenize(segs[segs.length - 1] ?? "");
-  const parentTokens = tokenize(segs[segs.length - 2] ?? "").map((t) => t.replace(/s$/, ""));
+  const parentTokens = tokenize(segs[segs.length - 2] ?? "").map((t) => singularToken(t));
   const nonPersonName = leafTokens.some((t) => NOT_PERSON.includes(t)) || (leafTokens.join("") === "name" && parentTokens.some((t) => NOT_PERSON.includes(t)));
   if (byCategory.has("personName") && nonPersonName && leafTokens.join("") !== "username") byCategory.delete("personName");
   // Date-of-birth names with non-date values are probably something else.

@@ -809,9 +809,18 @@ const custom: GeneratorDefinition<any>[] = [
     generate: (ctx, o) => {
       const target = ctx.rng.int(o.minLength, o.maxLength);
       if (target === 0) return "";
-      let s = ctx.rng.pick(WORDS);
-      while (s.length < target) s += " " + ctx.rng.pick(WORDS);
-      return s.slice(0, target).trimEnd().padEnd(Math.min(target, o.minLength), "x");
+      // Whole words where they fit; cut the last word only when needed to reach minLength.
+      let s = "";
+      for (let i = 0; i < 64 && s.length < target; i++) {
+        const w = ctx.rng.pick(WORDS);
+        const next = s ? `${s} ${w}` : w;
+        if (next.length > target) {
+          if (s.length < o.minLength || !s) s = next.slice(0, target);
+          break;
+        }
+        s = next;
+      }
+      return s.length < o.minLength ? s.padEnd(o.minLength, "x") : s;
     },
   }),
   def({

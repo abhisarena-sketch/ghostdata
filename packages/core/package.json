@@ -1,0 +1,52 @@
+{
+  "name": "@workfonic/dataghost",
+  "version": "0.1.0",
+  "description": "DataGhost SDK: schema inference, seeded synthetic data generation, masking and export.",
+  "license": "MIT",
+  "author": "Workfonic Labs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhisarena-sketch/ghostdata.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "synthetic-data",
+    "test-data",
+    "fixtures",
+    "privacy",
+    "data-masking",
+    "faker",
+    "dataghost"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@workfonic/dataghost-generators": "0.1.0",
+    "@workfonic/dataghost-privacy": "0.1.0",
+    "@workfonic/dataghost-relationships": "0.1.0",
+    "papaparse": "5.5.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/papaparse": "5.5.2"
+  }
+}

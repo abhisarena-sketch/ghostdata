@@ -112,9 +112,14 @@ export function formatPreserve(value: string, rng: Rng, options: { keepPrefix?: 
     if (m) start = m[0].length;
   }
   let out = value.slice(0, start);
+  // Hex identifiers (UUIDs, ObjectIds, hashes) stay hex.
+  const hex = value.length >= 8 && /^[0-9a-f]+(-[0-9a-f]+)*$/i.test(value) && /\d/.test(value);
   for (let i = start; i < value.length; i++) {
     const c = value[i] as string;
-    if (c >= "0" && c <= "9") out += String(rng.int(0, 9));
+    if (hex && /[0-9a-fA-F]/.test(c)) {
+      const h = "0123456789abcdef"[rng.int(0, 15)] as string;
+      out += c >= "A" && c <= "F" ? h.toUpperCase() : h;
+    } else if (c >= "0" && c <= "9") out += String(rng.int(0, 9));
     else if (c >= "A" && c <= "Z") out += UPPER[rng.int(0, 25)];
     else if (c >= "a" && c <= "z") out += LOWER[rng.int(0, 25)];
     else out += c;
@@ -128,6 +133,9 @@ function fill(template: string, digits: string): string {
 }
 
 function maskPhone(value: string, rng: Rng): string {
+  // Keep an international "+<country code>" prefix; it is not identifying.
+  const cc = /^\+\d{1,3}(?=[\s.-])/.exec(value)?.[0];
+  if (cc) return cc + maskPhone(value.slice(cc.length), rng);
   const count = (value.match(/\d/g) ?? []).length;
   // Fictional NANP 555-01xx ending; leading digits random.
   const tail = `55501${rng.int(0, 9)}${rng.int(0, 9)}`;
@@ -225,6 +233,12 @@ export interface TransformContext {
   rng: Rng;
   referenceDate: Date;
   category?: SensitiveCategory;
+  /**
+   * Optional generator for this field's semantic type (e.g. street rather than
+   * full address, first name rather than full name). Used by "synthesize" and
+   * by "pseudonymize" for names and addresses.
+   */
+  synthesize?: (rng: Rng) => unknown;
 }
 
 /**
@@ -257,6 +271,7 @@ export function transformValue(value: unknown, transformation: Transformation, c
       if (category === "phone") return maskPhone(value, ctx.rng);
       return formatPreserve(value, ctx.rng, { keepPrefix: category === "identifier" });
     case "synthesize":
+      if (ctx.synthesize && category !== "freeText") return ctx.synthesize(ctx.rng);
       return synthesize(value, category, ctx.rng, ctx.referenceDate);
     case "pseudonymize": {
       const ns = category === "identifier" || !category ? "id" : category;
@@ -269,7 +284,9 @@ export function transformValue(value: unknown, transformation: Transformation, c
           case "phone":
             return maskPhone(value, rng);
           case "personName":
-            return maskName(value, rng);
+            return ctx.synthesize ? ctx.synthesize(rng) : maskName(value, rng);
+          case "address":
+            return ctx.synthesize ? ctx.synthesize(rng) : synthesize(value, category, rng, ctx.referenceDate);
           case "ipAddress":
             return maskIp(value, rng);
           case "cardNumber":
