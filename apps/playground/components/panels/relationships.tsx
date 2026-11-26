@@ -43,7 +43,7 @@ export function RelationshipsPanel({ state, actions }: { state: PlaygroundState;
     }
   }
 
-  React.useEffect(() => validate(rels), [rels]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => validate(rels), [rels]);
 
   return (
     <div className="space-y-4">

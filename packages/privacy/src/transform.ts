@@ -79,16 +79,16 @@ export class Pseudonymizer {
    * Map a value. With `unique`, distinct inputs are guaranteed distinct
    * outputs (needed for identifiers and keys); otherwise collisions are allowed.
    */
-  map<T>(namespace: string, value: unknown, options: { unique: boolean }, produce: (rng: Rng) => T): T {
+  map<T>(namespace: string, value: unknown, options: { unique: boolean }, produce: (rng: Rng, attempt: number) => T): T {
     const key = `${namespace}|${typeof value}:${JSON.stringify(value)}`;
     if (this.forward.has(key)) return this.forward.get(key) as T;
     if (!options.unique) {
-      const out = produce(this.rngFor(namespace, value, 0));
+      const out = produce(this.rngFor(namespace, value, 0), 0);
       this.forward.set(key, out);
       return out;
     }
     for (let attempt = 0; attempt < 64; attempt++) {
-      const out = produce(this.rngFor(namespace, value, attempt));
+      const out = produce(this.rngFor(namespace, value, attempt), attempt);
       const outKey = `${namespace}|${typeof out}:${JSON.stringify(out)}`;
       const owner = this.reverse.get(outKey);
       if (owner === undefined || owner === key) {
@@ -125,6 +125,15 @@ export function formatPreserve(value: string, rng: Rng, options: { keepPrefix?: 
     else out += c;
   }
   return out;
+}
+
+/** Insert `extra` random digits after the last digit of a value (or append them). */
+export function widenDigits(value: string, extra: number, rng: Rng): string {
+  if (extra <= 0) return value;
+  let digits = "";
+  for (let i = 0; i < extra; i++) digits += String(rng.int(0, 9));
+  const last = value.search(/\d(?!.*\d)/);
+  return last < 0 ? value + digits : value.slice(0, last + 1) + digits + value.slice(last + 1);
 }
 
 function fill(template: string, digits: string): string {
@@ -275,7 +284,7 @@ export function transformValue(value: unknown, transformation: Transformation, c
       return synthesize(value, category, ctx.rng, ctx.referenceDate);
     case "pseudonymize": {
       const ns = category === "identifier" || !category ? "id" : category;
-      return ctx.pseudonymizer.map(ns, value, { unique: ns === "id" || ns === "email" }, (rng) => {
+      return ctx.pseudonymizer.map(ns, value, { unique: ns === "id" || ns === "email" }, (rng, attempt) => {
         if (typeof value === "number") return Number.isInteger(value) ? rng.int(1, Math.max(1_000_000, Math.abs(value) * 10)) : Math.round(rng.next() * 1e6) / 100;
         if (typeof value !== "string") return synthesize(value, category, rng, ctx.referenceDate);
         switch (category) {
@@ -294,7 +303,8 @@ export function transformValue(value: unknown, transformation: Transformation, c
           case "governmentId":
             return maskGovernmentId(value, rng);
           default:
-            return formatPreserve(value, rng, { keepPrefix: true });
+            // When the same-length value space is crowded, add digits so keys stay unique.
+            return widenDigits(formatPreserve(value, rng, { keepPrefix: true }), Math.floor(attempt / 8), rng);
         }
       });
     }

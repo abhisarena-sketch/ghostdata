@@ -1,5 +1,5 @@
 import { scanRecord, type SafetyFinding } from "@workfonic/dataghost-privacy";
-import { validateIntegrity, type IntegrityReport, type RelationshipConfig } from "@workfonic/dataghost-relationships";
+import { normalizeRelationships, validateIntegrity, type IntegrityReport, type RelationshipConfig } from "@workfonic/dataghost-relationships";
 import type { DataRecord, Dataset } from "./engine.js";
 import type { NormalizedField, NormalizedObject } from "./schema.js";
 
@@ -59,8 +59,18 @@ function checkLeaf(field: Extract<NormalizedField, { kind: "leaf" }>, v: unknown
   }
 }
 
+export interface ValidateRecordsOptions {
+  /**
+   * Foreign-key paths. Their values come from the referenced collection, so the
+   * generator's own range and enum constraints do not apply; only presence and
+   * nullability are checked here, and the integrity check covers the references.
+   */
+  foreignKeys?: ReadonlySet<string>;
+}
+
 /** Validate records against a normalised schema: presence, nullability, types, ranges, enums and uniqueness. */
-export function validateRecords(records: readonly DataRecord[], schema: NormalizedObject, collection?: string): ValidationResult {
+export function validateRecords(records: readonly DataRecord[], schema: NormalizedObject, collection?: string, options: ValidateRecordsOptions = {}): ValidationResult {
+  const foreignKeys = options.foreignKeys;
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
   let truncated = false;
@@ -98,6 +108,7 @@ export function validateRecords(records: readonly DataRecord[], schema: Normaliz
       v.forEach((el, i) => check(field.items, el, `${path}[${i}]`, index));
       return;
     }
+    if (foreignKeys?.has(path.replace(/\[\d+\]/g, "[]"))) return;
     const problem = checkLeaf(field, v);
     if (problem) err({ collection, recordIndex: index, path, message: problem });
     if (field.unique) {
@@ -145,8 +156,14 @@ export function validateDatasetFull(
   options: { schemas?: Record<string, NormalizedObject>; relationships?: RelationshipConfig[]; safetyScan?: boolean } = {},
 ): DatasetValidation {
   const schema: Record<string, ValidationResult> = {};
+  const foreignKeys = new Map<string, Set<string>>();
+  for (const r of options.relationships?.length ? normalizeRelationships(options.relationships) : []) {
+    let set = foreignKeys.get(r.from.collection);
+    if (!set) foreignKeys.set(r.from.collection, (set = new Set()));
+    set.add(r.from.path);
+  }
   for (const [name, s] of Object.entries(options.schemas ?? {})) {
-    schema[name] = validateRecords(dataset[name] ?? [], s, name);
+    schema[name] = validateRecords(dataset[name] ?? [], s, name, { foreignKeys: foreignKeys.get(name) });
   }
   const integrity = options.relationships?.length ? validateIntegrity(dataset, options.relationships) : undefined;
   const safety: SafetyFinding[] = [];

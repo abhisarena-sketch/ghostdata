@@ -95,7 +95,6 @@ export function Playground() {
       return { report: null, reportError: (e as Error).message };
     }
     // The inspection does not depend on the seed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, overrides]);
 
   const actions: PlaygroundActions = {

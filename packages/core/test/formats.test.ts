@@ -33,7 +33,7 @@ describe("JSON", () => {
   });
 
   it("strips a BOM", () => {
-    expect(parseJson("﻿[1]")).toEqual([1]);
+    expect(parseJson("\uFEFF[1]")).toEqual([1]);
   });
 });
 
@@ -218,6 +218,15 @@ describe("validation", () => {
   it("detects duplicates in unique fields", () => {
     const s = normalizeSchema({ k: { type: "uuid", unique: true } }, { registry: defaultRegistry });
     expect(validateRecords([{ k: "a" }, { k: "a" }], s).errors[0]!.message).toMatch(/duplicate/);
+  });
+
+  it("does not apply generator ranges to foreign keys", async () => {
+    const schemas = { d: { id: { type: "sequence" } }, e: { dId: { type: "integer", min: 0, max: 5 } } };
+    const relationships = [{ from: "e.dId", to: "d.id" }];
+    const { data } = await ghost.generateDataset({ collections: { d: { count: 50, schema: schemas.d }, e: { count: 200, schema: schemas.e } }, relationships });
+    expect(data.e!.some((r) => (r.dId as number) > 5)).toBe(true);
+    expect(ghost.validateDataset(data, { schemas, relationships }).valid).toBe(true);
+    expect(ghost.validateDataset(data, { schemas }).valid).toBe(false);
   });
 
   it("validates datasets with integrity and safety scanning", async () => {

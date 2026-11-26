@@ -105,6 +105,14 @@ describe("transformValue", () => {
     expect(t("sk_live_x", "generalize", "apiKey")).toBe(REDACTED);
   });
 
+  it("keeps pseudonymised identifiers unique when the same-length space fills up", () => {
+    const p = new Pseudonymizer("s");
+    const out = new Set<unknown>();
+    for (let i = 0; i < 5000; i++) out.add(t(`EMP-${String(i).padStart(4, "0")}`, "pseudonymize", "identifier", p));
+    expect(out.size).toBe(5000);
+    expect([...out].every((v) => /^EMP-\d{4,}$/.test(String(v)))).toBe(true);
+  });
+
   it("pseudonymises consistently and uses safe domains", () => {
     const p = new Pseudonymizer("s");
     const a = t("real.person@corp.co", "pseudonymize", "email", p);

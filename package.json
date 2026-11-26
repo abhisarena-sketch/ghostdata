@@ -24,7 +24,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "npm run build:packages && node tests/benchmarks/run.mjs",
+    "bench": "npm run build:packages && node --expose-gc tests/benchmarks/run.mjs",
     "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo apps/playground/.next apps/playground/out",
     "dev": "npm run build:packages && npm run dev -w @workfonic/dataghost-playground"
   },

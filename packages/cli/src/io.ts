@@ -111,7 +111,7 @@ export async function jsonIsArray(file: string): Promise<boolean> {
   try {
     const buf = Buffer.alloc(4096);
     const { bytesRead } = await fh.read(buf, 0, 4096, 0);
-    const s = buf.subarray(0, bytesRead).toString("utf8").replace(/^﻿/, "").trimStart();
+    const s = buf.subarray(0, bytesRead).toString("utf8").replace(/^\uFEFF/, "").trimStart();
     return s.startsWith("[");
   } finally {
     await fh.close();
@@ -223,7 +223,7 @@ export async function readJsonFile(cwd: string, file: string, what: string): Pro
   if (st.size > 10 * 1048576) throw new CliError(`${what} file is larger than 10 MB`, EXIT.INPUT);
   const text = await fs.readFile(p, "utf8");
   try {
-    return JSON.parse(text.replace(/^﻿/, ""));
+    return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch (e) {
     throw new CliError(`${what} file ${file} is not valid JSON: ${(e as Error).message.replace(/,?\s*".*"\s*is not valid JSON/s, "")}`, EXIT.CONFIG);
   }
