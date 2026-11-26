@@ -1,0 +1,45 @@
+{
+  "seed": 2026,
+  "mode": "synthetic",
+  "output": { "dir": "dataghost-output", "format": "json", "pretty": true },
+  "collections": {
+    "customers": {
+      "count": 200,
+      "schema": {
+        "id": { "type": "sequence", "prefix": "CUS-", "pad": 5 },
+        "name": "fullName",
+        "email": { "type": "email", "unique": true },
+        "phone": { "type": "phone", "country": "GB" },
+        "segment": { "type": "enum", "values": ["consumer", "smb", "enterprise"], "weights": [6, 3, 1] },
+        "createdAt": { "type": "timestamp", "from": "-3y", "to": "now" }
+      }
+    },
+    "products": {
+      "count": 50,
+      "schema": {
+        "sku": "productId",
+        "name": { "type": "pattern", "pattern": "(Cobalt|Granite|Harbor|Summit) (Desk|Lamp|Chair|Shelf)" },
+        "price": { "type": "decimal", "min": 5, "max": 900, "precision": 2 }
+      }
+    },
+    "orders": {
+      "count": 1000,
+      "schema": {
+        "id": "orderId",
+        "customerId": "string",
+        "placedAt": { "type": "timestamp", "from": "-1y", "to": "now" },
+        "status": { "type": "enum", "values": ["placed", "shipped", "delivered", "returned"], "weights": [1, 2, 6, 1] },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "productSku": "string", "quantity": { "type": "integer", "min": 1, "max": 3 } }
+        }
+      }
+    }
+  },
+  "relationships": [
+    { "from": "orders.customerId", "to": "customers.id" },
+    { "from": "orders.items[].productSku", "to": "products.sku" }
+  ]
+}

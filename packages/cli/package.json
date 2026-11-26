@@ -1,0 +1,48 @@
+{
+  "name": "@workfonic/dataghost-cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for DataGhost.",
+  "license": "MIT",
+  "author": "Workfonic Labs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhisarena-sketch/ghostdata.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "synthetic-data",
+    "test-data",
+    "fixtures",
+    "privacy",
+    "data-masking",
+    "faker",
+    "dataghost"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@workfonic/dataghost": "0.1.0"
+  },
+  "bin": {
+    "dataghost": "./dist/bin.js"
+  }
+}
